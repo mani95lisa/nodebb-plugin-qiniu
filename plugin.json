@@ -1,7 +1,7 @@
 {
-    "id": "nodebb-plugin-qiniu",
+    "id": "nodebb-plugin-qiniu-all",
     "name": "Qiniu Upload Plugin",
-    "description": "A Plugin that uploads images, audios, videos to Qiniu",
+    "description": "A Plugin that uploads images, audios, videos and everything others to Qiniu",
     "url": "https://github.com/mani95lisa/nodebb-plugin-qiniu",
     "library": "./index.js",
     "staticDirs": {
