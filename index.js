@@ -4,119 +4,109 @@
 var request = require('request'),
 	winston = require('winston'),
 	fs = require('fs'),
+	qiniuNode = require('qiniu'),
+	db = module.parent.require('./database'),
+	EventProxy = require('eventproxy');
 
-	db = module.parent.require('./database');
+(function(Qiniu) {
 
+	var setting = {},
+		fields = [
+			'nodebb-plugin-qiniu:AccessKey',
+			'nodebb-plugin-qiniu:SecretKey',
+			'nodebb-plugin-qiniu:Bucket'
+		],
+		newFieldName;
 
-(function(imgur) {
-
-	var imgurClientID = '';
-
-	db.getObjectField('nodebb-plugin-imgur', 'imgurClientID', function(err, id) {
+	db.getObjectFields('nodebb-plugin-qiniu', ['AccessKey', 'SecretKey', 'Bucket'], function(err, values) {
 		if(err) {
 			return winston.error(err.message);
 		}
-		imgurClientID = id;
+
+		for (var field in values){
+			if (values.hasOwnProperty(field)){
+				setting[field] = values[field];
+			}
+		}
+        qiniuNode.conf.ACCESS_KEY = setting['AccessKey'];
+        qiniuNode.conf.SECRET_KEY = setting['SecretKey'];
 	});
 
-	imgur.init = function(app, middleware, controllers) {
+	Qiniu.init = function(app, middleware, controllers) {
 
-		app.get('/admin/plugins/imgur', middleware.admin.buildHeader, renderAdmin);
-		app.get('/api/admin/plugins/imgur', renderAdmin);
-
-		app.post('/api/admin/plugins/imgur/save', save);
+		app.get('/admin/plugins/qiniu', middleware.admin.buildHeader, renderAdmin);
+		app.get('/api/admin/plugins/qiniu', renderAdmin);
+		app.get('/api/qiniu/token', getQiniuToken)
+		app.post('/api/admin/plugins/qiniu/save', save);
 	};
 
+	function getQiniuToken(req, res, next) {
+		var putPolicy = new qiniuNode.rs.PutPolicy(setting['Bucket']);
+		res.json(200, {uptoken:putPolicy.token()});
+	}
+
 	function renderAdmin(req, res, next) {
-		db.getObjectField('nodebb-plugin-imgur', 'imgurClientID', function(err, imgurClientID) {
-			if (err) {
-				return next(err);
+		db.getObjectFields('nodebb-plugin-qiniu', ['AccessKey', 'SecretKey', 'Bucket'], function(err, values) {
+			if(err) {
+				return winston.error(err.message);
 			}
 
-			res.render('admin/plugins/imgur', {imgurClientID: imgurClientID});
-		});
+			for (var field in values){
+				if (values.hasOwnProperty(field)){
+                    setting[field] = values[field];
+				}
+			}
+            var data = {
+                AccessKey: setting['AccessKey'],
+                SecretKey: setting['SecretKey'],
+                Bucket: setting['Bucket']
+            };
+			res.render('admin/plugins/qiniu', data);
+		});		
 	}
 
 	function save(req, res, next) {
-		if(req.body.imgurClientID !== null && req.body.imgurClientID !== undefined) {
-			db.setObjectField('nodebb-plugin-imgur', 'imgurClientID', req.body.imgurClientID, function(err) {
-				if (err) {
-					return next(err);
-				}
-
-				imgurClientID = req.body.imgurClientID;
-				res.json(200, {message: 'Imgur Client ID saved!'});
+		var data = req.body;
+		if(data.AccessKey !== null && data.SecretKey !== undefined && data.Bucket !== undefined) {
+			var ep = new EventProxy();
+			ep.all("AK", "SK", "QB", function(AK, SK, QB){
+				res.json(200, {message: 'Qiniu Config Completed!'});
 			});
+			ep.fail(function(err){
+				return next(err);
+			})
+			db.setObjectField('nodebb-plugin-qiniu', 'AccessKey', data.AccessKey, ep.done("AK"));
+			db.setObjectField('nodebb-plugin-qiniu', 'SecretKey', data.SecretKey, ep.done("SK"));
+			db.setObjectField('nodebb-plugin-qiniu', 'Bucket', data.Bucket, ep.done("QB"));
 		}
 	}
 
-	imgur.upload = function (image, callback) {
-		if(!imgurClientID) {
-			return callback(new Error('invalid-imgur-client-id'));
-		}
-
-		if(!image || !image.path) {
-			return callback(new Error('invalid image'));
-		}
-
-		uploadToImgur(imgurClientID, image, function(err, data) {
-			if(err) {
-				return callback(err);
-			}
-
-			callback(null, {
-				url: data.link.replace('http:', 'https:'),
-				name: image.name
-			});
-		});
+	Qiniu.upload = function (file, callback) {
+        var putPolicy = new qiniuNode.rs.PutPolicy(setting['Bucket']);
+        var token = putPolicy.token();
+        var extra = new qiniuNode.io.PutExtra();
+        qiniuNode.io.putFile(token, '', file.path, extra, function (err, ret) {
+            if(err){
+                return callback(err);
+            }
+            callback(null, {url:'http://'+setting['Bucket']+'.qiniudn.com/'+ret.key,
+                name:file.originalFilename});
+        });
 	};
-
-	function uploadToImgur(clientID, image, callback) {
-		var options = {
-			url: 'https://api.imgur.com/3/upload.json',
-			headers: {
-				'Authorization': 'Client-ID ' + clientID
-			}
-		};
-
-		var post = request.post(options, function (err, req, body) {
-			if(err) {
-				return callback(err);
-			}
-
-			try {
-				var response = JSON.parse(body);
-
-				if(response.success) {
-					callback(null, response.data);
-				} else {
-					callback(new Error(response.data.error.message));
-				}
-			} catch(e) {
-				winston.error('Unable to parse Imgur json response. [' + body +']');
-				callback(e);
-			}
-		});
-
-		var upload = post.form();
-		upload.append('type', 'file');
-		upload.append('image', fs.createReadStream(image.path));
-	}
 
 	var admin = {};
 
 	admin.menu = function(menu, callback) {
 		menu.plugins.push({
-			route: '/plugins/imgur',
-			icon: 'fa-picture-o',
-			name: 'Imgur'
+			route: '/plugins/qiniu',
+			icon: 'fa-cloud',
+			name: 'Qiniu'
 		});
 
 		callback(null, menu);
 	};
 
-
-	imgur.admin = admin;
+	Qiniu.admin = admin;
 
 }(module.exports));
 

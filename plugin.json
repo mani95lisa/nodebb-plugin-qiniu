@@ -1,18 +1,16 @@
 {
-    "id": "nodebb-plugin-imgur",
-    "name": "Imgur Upload Plugin",
-    "description": "A Plugin that uploads images to imgur",
-    "url": "https://github.com/barisusakli/nodebb-plugin-imgur",
+    "id": "nodebb-plugin-qiniu",
+    "name": "Qiniu Upload Plugin",
+    "description": "A Plugin that uploads images, audios, videos to Qiniu",
+    "url": "https://github.com/mani95lisa/nodebb-plugin-qiniu",
     "library": "./index.js",
     "staticDirs": {
-        "imgur": "public"
+        "qiniu": "public"
     },
     "hooks": [
         { "hook": "action:app.load", "method": "init"},
-
         { "hook": "filter:admin.header.build", "method": "admin.menu"},
-        { "hook": "filter:uploadImage", "method": "upload", "priority": 6 }
-
+        { "hook": "filter:uploadFile", "method": "upload", "priority": 6 }
     ],
     "minver": "0.4.0",
     "templates": "./public/templates"
