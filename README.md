@@ -4,7 +4,7 @@ A plugin that uploads everything to qiniu.com
 
 ## Installation
 
-    npm install nodebb-plugin-qiniu
+    npm install nodebb-plugin-qiniu-all
 
 ## Usage
 
