@@ -89,8 +89,7 @@ var request = require('request'),
             if(err){
                 return callback(err);
             }
-            callback(null, {url:'http://'+setting['Bucket']+'.qiniudn.com/'+ret.key,
-                name:file.originalFilename});
+            callback(null, {url:'http://'+setting['Bucket']+'.qiniudn.com/'+ret.key,name:file.originalFilename?file.originalFilename:file.name});
         });
 	};
 
