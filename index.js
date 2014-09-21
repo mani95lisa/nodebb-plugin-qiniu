@@ -6,6 +6,9 @@ var request = require('request'),
 	fs = require('fs'),
 	qiniuNode = require('qiniu'),
 	db = module.parent.require('./database'),
+    User = module.parent.require('./user'),
+    uuid = require("uuid").v4,
+    path = require('path'),
 	EventProxy = require('eventproxy');
 
 (function(Qiniu) {
@@ -85,11 +88,12 @@ var request = require('request'),
         var putPolicy = new qiniuNode.rs.PutPolicy(setting['Bucket']);
         var token = putPolicy.token();
         var extra = new qiniuNode.io.PutExtra();
-        qiniuNode.io.putFile(token, '', file.path, extra, function (err, ret) {
+        qiniuNode.io.putFile(token, uuid()+path.extname(file.name), file.path, extra, function (err, ret) {
             if(err){
                 return callback(err);
             }
-            callback(null, {url:'http://'+setting['Bucket']+'.qiniudn.com/'+ret.key,name:file.originalFilename?file.originalFilename:file.name});
+            callback(null, {url:'http://'+setting['Bucket']+'.qiniudn.com/'+ret.key,
+                name:file.originalFilename});
         });
 	};
 
