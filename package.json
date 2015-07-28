@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-qiniu-all",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A Plugin that uploads images, audios, videos to qiniu",
   "main": "index.js",
   "scripts": {

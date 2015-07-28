@@ -44,7 +44,7 @@ var winston = require('winston'),
 	}
 
 	function renderAdmin(req, res, next) {
-		db.getObjectFields('nodebb-plugin-qiniu', ['AccessKey', 'SecretKey', 'Bucket'], function(err, values) {
+		db.getObjectFields('nodebb-plugin-qiniu', ['AccessKey', 'SecretKey', 'Bucket', 'Host'], function(err, values) {
 			if(err) {
 				return winston.error(err.message);
 			}
