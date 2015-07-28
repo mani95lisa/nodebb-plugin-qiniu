@@ -8,10 +8,11 @@
         "qiniu": "public"
     },
     "hooks": [
-        { "hook": "action:app.load", "method": "init"},
+        { "hook": "static:app.load", "method": "init"},
+
         { "hook": "filter:admin.header.build", "method": "admin.menu"},
         { "hook": "filter:uploadFile", "method": "upload", "priority": 6 }
+
     ],
-    "minver": "0.4.0",
     "templates": "./public/templates"
 }
